@@ -503,6 +503,7 @@ echo "You can validate the install by pointing your browser at http://$publicip:
 echo "or maybe http://$privateip:8080"
 echo ""
 echo "You can find the start.sh, stop.sh, and remove.sh scripts in $PIPELINES_DIR"
+cd $PIPELINES_DIR
 
 }
 
