@@ -114,6 +114,10 @@ function get_configuration ()
   get_input "MySQL PFC User" "" "MYSQL_USER"
   get_input "MySQL PFC User Password" "true" "MYSQL_PASSWORD"
 
+  DB_ENDPOINT=mysql://$MYSQL_ROOT_HOST:3306/$MYSQL_DATABASE
+  USER=$MYSQL_USER
+  MYSQL_PWD=$MYSQL_PASSWORD
+
   echo "+-----------------------------------------------------------------------------+"
   echo "|   PFC Configuration Summary                                                 |"
   echo "+-----------------------------------------------------------------------------+"
