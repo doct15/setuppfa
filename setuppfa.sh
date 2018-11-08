@@ -458,7 +458,7 @@ echo -ne "\nPulling PFA container.\n"
 docker pull puppet/pipelines-for-applications:latest
 
 echo -ne "\nStarting Pipelines.\n"
-docker run --rm --name pfc --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d puppet/pipelines-for-applications:latest
+docker run --rm --name pfa --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d puppet/pipelines-for-applications:latest
 
 echo -ne "\nCreating start.sh startup script.\n"
 cat > start.sh <<EOF
@@ -468,14 +468,14 @@ docker run --rm --name artifactory -v /$PIPELINES_DIR/artifactory:/var/opt/jfrog
 echo -ne "\nStarting MySQL 5.7 container while waiting for Artifactory to startup.\n"
 docker run --rm --name mysql -v /$PIPELINES_DIR/mysql:/var/lib/mysql --env-file mysql.env -p 3306:3306 -d mysql/mysql-server:5.7
 echo -ne "\nStarting Pipelines.\n"
-docker run --rm --name pfc --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d puppet/pipelines-for-applications:latest
+docker run --rm --name pfa --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d puppet/pipelines-for-applications:latest
 EOF
 chmod +x start.sh
 
 echo -ne "\nCreating stop.sh stop script.\n"
 cat > stop.sh <<EOF
 cd $PIPELINES_DIR
-docker kill pfc
+docker kill pfa
 docker kill mysql
 docker kill artifactory
 EOF
@@ -484,7 +484,7 @@ chmod +x stop.sh
 echo -ne "\nCreating remove.sh removal script.\n"
 cat > remove.sh <<EOF
 cd $PIPELINES_DIR
-docker kill pfc
+docker kill pfa
 docker kill mysql
 docker kill artifactory
 sudo rm -rf /$PIPELINES_DIR/artifactory
