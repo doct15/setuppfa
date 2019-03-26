@@ -458,7 +458,8 @@ echo -ne "\nPulling PFC container.\n"
 docker pull puppet/pipelines-for-containers:latest
 
 echo -ne "\nStarting Pipelines.\n"
-docker run --rm --name pfc --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d puppet/pipelines-for-containers:latest
+#docker run --rm --name pfc --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d puppet/pipelines-for-containers:latest
+docker run --rm --name pfc --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d pcr-internal.puppet.net/pipelines/pfa:470921
 
 echo -ne "\nCreating start.sh startup script.\n"
 cat > start.sh <<EOF

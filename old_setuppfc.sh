@@ -8,7 +8,7 @@ ARTIFACTORY_LOGIN=admin
 ARTIFACTORY_GENERICDB=pipelines
 
 MYSQL_ROOT_PASSWORD=password
-MYSQL_DATABASE=PFADB
+MYSQL_DATABASE=PFCDB
 MYSQL_USER=pipelines
 MYSQL_PASSWORD=password
 MYSQL_ROOT_HOST=172.17.0.1
@@ -76,7 +76,7 @@ function main_header ()
 {
   clear
   echo "+-----------------------------------------------------------------------------+"
-  echo "|   Puppet Pipelines for Applications (PFA) Setup and Install Utility           |"
+  echo "|   Puppet Pipelines for Containers (PFC) Setup and Install Utility           |"
   echo "+-----------------------------------------------------------------------------+"
   echo ""
 
@@ -85,15 +85,15 @@ function main_header ()
   echo "without sudo."
   echo ""
   echo "This script will pull and run the following containers:"
-  echo "* Artifactory - docker.bintray.io/jfrog/artifactory-oss:5.10.2"
+  echo "* Artifactory - docker.bintray.io/jfrog/artifactory-oss:latest"
   echo "* MySQL 5.7 - mysql/mysql-server:5.7"
-  echo "* PFA - puppet/pipelines-for-applications:latest" 
+  echo "* PFC - puppet/pipelines-for-containers:latest" 
   echo ""
-  echo " PFA requires a license to operate."
+  echo " PFC requires a license to operate."
   echo ""
 
 
-  yes_no "Would you like to continue and install PFA on this system?"
+  yes_no "Would you like to continue and install PFC on this system?"
   if [ "$YESNO" = false ]; then
     echo "Exiting..."
     exit 0
@@ -105,21 +105,21 @@ function get_configuration ()
   echo ""
 
   echo "What directory would you like to install into?"
-  get_input "PFA Directory" "" "PIPELINES_DIR"
+  get_input "PFC Directory" "" "PIPELINES_DIR"
 
   MYSQL_TEST_PWD=$MYSQL_ROOT_PASSWORD
   SAME_PWD=false
   get_input "MySQL Root Password" "true" "MYSQL_ROOT_PASSWORD"
-  get_input "MySQL PFA Database" "" "MYSQL_DATABASE"
-  get_input "MySQL PFA User" "" "MYSQL_USER"
-  get_input "MySQL PFA User Password" "true" "MYSQL_PASSWORD"
+  get_input "MySQL PFC Database" "" "MYSQL_DATABASE"
+  get_input "MySQL PFC User" "" "MYSQL_USER"
+  get_input "MySQL PFC User Password" "true" "MYSQL_PASSWORD"
 
   DB_ENDPOINT=mysql://$MYSQL_ROOT_HOST:3306/$MYSQL_DATABASE
   USER=$MYSQL_USER
   MYSQL_PWD=$MYSQL_PASSWORD
 
   echo "+-----------------------------------------------------------------------------+"
-  echo "|   PFA Configuration Summary                                                 |"
+  echo "|   PFC Configuration Summary                                                 |"
   echo "+-----------------------------------------------------------------------------+"
   echo ""
   echo "Artifactory values are informational only and cannot be set with this script."
@@ -134,7 +134,7 @@ function get_configuration ()
   echo "MYSQL_PASSWORD=*REDACTED*"
   echo "MYSQL_ROOT_HOST=$MYSQL_ROOT_HOST"
   echo ""
-  echo "PFA DB values"
+  echo "PFC DB values"
   echo "DB_ENDPOINT=$DB_ENDPOINT"
   echo "USER=$MYSQL_USER"
   echo "MYSQL_PWD=*REDACTED*"
@@ -420,10 +420,10 @@ cat > artifactory/etc/artifactory.config.xml <<EOF
 EOF
 
 echo -ne "\nPulling Artifactory OSS container.\n"
-docker pull docker.bintray.io/jfrog/artifactory-oss:5.10.2
+docker pull docker.bintray.io/jfrog/artifactory-oss:latest
 
 echo -ne "\nStarting Artifactory OSS container.\n"
-docker run --rm --name artifactory -v /$PIPELINES_DIR/artifactory:/var/opt/jfrog/artifactory -p 8081:8081 -d docker.bintray.io/jfrog/artifactory-oss:5.10.2
+docker run --rm --name artifactory -v /$PIPELINES_DIR/artifactory:/var/opt/jfrog/artifactory -p 8081:8081 -d docker.bintray.io/jfrog/artifactory-oss:latest
 
 echo -ne "\nPulling MySQL 5.7 container.\n"
 docker pull mysql/mysql-server:5.7
@@ -449,36 +449,33 @@ done
 echo -ne "\nEnsuring the Artifactory admin account has an API token\n"
 response=$(curl -X POST -su admin:password http://localhost:8081/artifactory/api/security/apiKey)
 
-echo -ne "\nGetting Artifactory API key (You need this to install PFA)\n"
+echo -ne "\nGetting Artifactory API key (You need this to install PFC)\n"
 token=$(curl -su admin:password http://localhost:8081/artifactory/api/security/apiKey)
 echo "$token"
 #echo "$token" | jq -r .apiKey
 
-echo -ne "\nPulling PFA container.\n"
-#docker pull puppet/pipelines-for-applications:latest
-docker pull pcr-internal.puppet.net/pipelines/pfa:517512
+echo -ne "\nPulling PFC container.\n"
+docker pull puppet/pipelines-for-containers:latest
 
 echo -ne "\nStarting Pipelines.\n"
-docker run --rm --name pfa --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d pcr-internal.puppet.net/pipelines/pfa:517512
-#docker run --rm --name pfa --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d puppet/pipelines-for-applications:latest
+docker run --rm --name pfc --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d puppet/pipelines-for-containers:latest
 
 echo -ne "\nCreating start.sh startup script.\n"
 cat > start.sh <<EOF
 cd $PIPELINES_DIR
 echo -ne "\nStarting Artifactory OSS container.\n"
-docker run --rm --name artifactory -v /$PIPELINES_DIR/artifactory:/var/opt/jfrog/artifactory -p 8081:8081 -d docker.bintray.io/jfrog/artifactory-oss:5.10.2
+docker run --rm --name artifactory -v /$PIPELINES_DIR/artifactory:/var/opt/jfrog/artifactory -p 8081:8081 -d docker.bintray.io/jfrog/artifactory-oss:latest
 echo -ne "\nStarting MySQL 5.7 container while waiting for Artifactory to startup.\n"
 docker run --rm --name mysql -v /$PIPELINES_DIR/mysql:/var/lib/mysql --env-file mysql.env -p 3306:3306 -d mysql/mysql-server:5.7
 echo -ne "\nStarting Pipelines.\n"
-#docker run --rm --name pfa --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d puppet/pipelines-for-applications:latest
-docker run --rm --name pfa --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d pcr-internal.puppet.net/pipelines/pfa:517512
+docker run --rm --name pfc --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d puppet/pipelines-for-containers:latest
 EOF
 chmod +x start.sh
 
 echo -ne "\nCreating stop.sh stop script.\n"
 cat > stop.sh <<EOF
 cd $PIPELINES_DIR
-docker kill pfa
+docker kill pfc
 docker kill mysql
 docker kill artifactory
 EOF
@@ -487,7 +484,7 @@ chmod +x stop.sh
 echo -ne "\nCreating remove.sh removal script.\n"
 cat > remove.sh <<EOF
 cd $PIPELINES_DIR
-docker kill pfa
+docker kill pfc
 docker kill mysql
 docker kill artifactory
 sudo rm -rf /$PIPELINES_DIR/artifactory

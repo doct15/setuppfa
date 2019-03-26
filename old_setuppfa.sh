@@ -85,7 +85,7 @@ function main_header ()
   echo "without sudo."
   echo ""
   echo "This script will pull and run the following containers:"
-  echo "* Artifactory - docker.bintray.io/jfrog/artifactory-oss:5.10.2"
+  echo "* Artifactory - docker.bintray.io/jfrog/artifactory-oss:latest"
   echo "* MySQL 5.7 - mysql/mysql-server:5.7"
   echo "* PFA - puppet/pipelines-for-applications:latest" 
   echo ""
@@ -420,10 +420,10 @@ cat > artifactory/etc/artifactory.config.xml <<EOF
 EOF
 
 echo -ne "\nPulling Artifactory OSS container.\n"
-docker pull docker.bintray.io/jfrog/artifactory-oss:5.10.2
+docker pull docker.bintray.io/jfrog/artifactory-oss:latest
 
 echo -ne "\nStarting Artifactory OSS container.\n"
-docker run --rm --name artifactory -v /$PIPELINES_DIR/artifactory:/var/opt/jfrog/artifactory -p 8081:8081 -d docker.bintray.io/jfrog/artifactory-oss:5.10.2
+docker run --rm --name artifactory -v /$PIPELINES_DIR/artifactory:/var/opt/jfrog/artifactory -p 8081:8081 -d docker.bintray.io/jfrog/artifactory-oss:latest
 
 echo -ne "\nPulling MySQL 5.7 container.\n"
 docker pull mysql/mysql-server:5.7
@@ -455,23 +455,20 @@ echo "$token"
 #echo "$token" | jq -r .apiKey
 
 echo -ne "\nPulling PFA container.\n"
-#docker pull puppet/pipelines-for-applications:latest
-docker pull pcr-internal.puppet.net/pipelines/pfa:517512
+docker pull puppet/pipelines-for-applications:latest
 
 echo -ne "\nStarting Pipelines.\n"
-docker run --rm --name pfa --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d pcr-internal.puppet.net/pipelines/pfa:517512
-#docker run --rm --name pfa --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d puppet/pipelines-for-applications:latest
+docker run --rm --name pfa --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d puppet/pipelines-for-applications:latest
 
 echo -ne "\nCreating start.sh startup script.\n"
 cat > start.sh <<EOF
 cd $PIPELINES_DIR
 echo -ne "\nStarting Artifactory OSS container.\n"
-docker run --rm --name artifactory -v /$PIPELINES_DIR/artifactory:/var/opt/jfrog/artifactory -p 8081:8081 -d docker.bintray.io/jfrog/artifactory-oss:5.10.2
+docker run --rm --name artifactory -v /$PIPELINES_DIR/artifactory:/var/opt/jfrog/artifactory -p 8081:8081 -d docker.bintray.io/jfrog/artifactory-oss:latest
 echo -ne "\nStarting MySQL 5.7 container while waiting for Artifactory to startup.\n"
 docker run --rm --name mysql -v /$PIPELINES_DIR/mysql:/var/lib/mysql --env-file mysql.env -p 3306:3306 -d mysql/mysql-server:5.7
 echo -ne "\nStarting Pipelines.\n"
-#docker run --rm --name pfa --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d puppet/pipelines-for-applications:latest
-docker run --rm --name pfa --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d pcr-internal.puppet.net/pipelines/pfa:517512
+docker run --rm --name pfa --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d puppet/pipelines-for-applications:latest
 EOF
 chmod +x start.sh
 

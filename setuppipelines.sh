@@ -18,7 +18,7 @@ USER=$MYSQL_USER
 MYSQL_PWD=$MYSQL_PASSWORD
 
 WAITTIME=10
-PIPELINES_DIR=/pipe2
+PIPELINES_DIR=~/pipelines
 
 function yes_no()
 {
@@ -76,7 +76,7 @@ function main_header ()
 {
   clear
   echo "+-----------------------------------------------------------------------------+"
-  echo "|   Puppet Pipelines for Applications (PFA) Setup and Install Utility           |"
+  echo "|   Puppet Pipelines for Applications (pipelines) Setup and Install Utility           |"
   echo "+-----------------------------------------------------------------------------+"
   echo ""
 
@@ -87,13 +87,13 @@ function main_header ()
   echo "This script will pull and run the following containers:"
   echo "* Artifactory - docker.bintray.io/jfrog/artifactory-oss:5.10.2"
   echo "* MySQL 5.7 - mysql/mysql-server:5.7"
-  echo "* PFA - puppet/pipelines-for-applications:latest" 
+  echo "* pipelines - puppet/pipelines-for-applications:latest" 
   echo ""
-  echo " PFA requires a license to operate."
+  echo " pipelines requires a license to operate."
   echo ""
 
 
-  yes_no "Would you like to continue and install PFA on this system?"
+  yes_no "Would you like to continue and install pipelines on this system?"
   if [ "$YESNO" = false ]; then
     echo "Exiting..."
     exit 0
@@ -105,21 +105,21 @@ function get_configuration ()
   echo ""
 
   echo "What directory would you like to install into?"
-  get_input "PFA Directory" "" "PIPELINES_DIR"
+  get_input "pipelines Directory" "" "PIPELINES_DIR"
 
   MYSQL_TEST_PWD=$MYSQL_ROOT_PASSWORD
   SAME_PWD=false
   get_input "MySQL Root Password" "true" "MYSQL_ROOT_PASSWORD"
-  get_input "MySQL PFA Database" "" "MYSQL_DATABASE"
-  get_input "MySQL PFA User" "" "MYSQL_USER"
-  get_input "MySQL PFA User Password" "true" "MYSQL_PASSWORD"
+  get_input "MySQL pipelines Database" "" "MYSQL_DATABASE"
+  get_input "MySQL pipelines User" "" "MYSQL_USER"
+  get_input "MySQL pipelines User Password" "true" "MYSQL_PASSWORD"
 
   DB_ENDPOINT=mysql://$MYSQL_ROOT_HOST:3306/$MYSQL_DATABASE
   USER=$MYSQL_USER
   MYSQL_PWD=$MYSQL_PASSWORD
 
   echo "+-----------------------------------------------------------------------------+"
-  echo "|   PFA Configuration Summary                                                 |"
+  echo "|   pipelines Configuration Summary                                                 |"
   echo "+-----------------------------------------------------------------------------+"
   echo ""
   echo "Artifactory values are informational only and cannot be set with this script."
@@ -134,7 +134,7 @@ function get_configuration ()
   echo "MYSQL_PASSWORD=*REDACTED*"
   echo "MYSQL_ROOT_HOST=$MYSQL_ROOT_HOST"
   echo ""
-  echo "PFA DB values"
+  echo "pipelines DB values"
   echo "DB_ENDPOINT=$DB_ENDPOINT"
   echo "USER=$MYSQL_USER"
   echo "MYSQL_PWD=*REDACTED*"
@@ -449,18 +449,22 @@ done
 echo -ne "\nEnsuring the Artifactory admin account has an API token\n"
 response=$(curl -X POST -su admin:password http://localhost:8081/artifactory/api/security/apiKey)
 
-echo -ne "\nGetting Artifactory API key (You need this to install PFA)\n"
+echo -ne "\nGetting Artifactory API key (You need this to install pipelines)\n"
 token=$(curl -su admin:password http://localhost:8081/artifactory/api/security/apiKey)
 echo "$token"
 #echo "$token" | jq -r .apiKey
 
-echo -ne "\nPulling PFA container.\n"
+echo -ne "\nPulling pipelines container.\n"
 #docker pull puppet/pipelines-for-applications:latest
-docker pull pcr-internal.puppet.net/pipelines/pfa:517512
+#docker pull pcr-internal.puppet.net/pipelines/pipelines:501028
+#docker pull doct15/pipelines:514929
+docker pull pcr-internal.puppet.net/pipelines/pipelines:523060
 
 echo -ne "\nStarting Pipelines.\n"
-docker run --rm --name pfa --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d pcr-internal.puppet.net/pipelines/pfa:517512
+#docker run --rm --name pfa --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d pcr-internal.puppet.net/pipelines/pfa:501028
+#docker run --rm --name pipelines --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d doct15/pipelines:514929
 #docker run --rm --name pfa --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d puppet/pipelines-for-applications:latest
+docker run --rm --name pipelines --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d pcr-internal.puppet.net/pipelines/pipelines:523060
 
 echo -ne "\nCreating start.sh startup script.\n"
 cat > start.sh <<EOF
@@ -471,14 +475,15 @@ echo -ne "\nStarting MySQL 5.7 container while waiting for Artifactory to startu
 docker run --rm --name mysql -v /$PIPELINES_DIR/mysql:/var/lib/mysql --env-file mysql.env -p 3306:3306 -d mysql/mysql-server:5.7
 echo -ne "\nStarting Pipelines.\n"
 #docker run --rm --name pfa --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d puppet/pipelines-for-applications:latest
-docker run --rm --name pfa --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d pcr-internal.puppet.net/pipelines/pfa:517512
+#docker run --rm --name pipelines --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d doct15/pipelines:514929
+docker run --rm --name pipelines --env-file pipelines.env -p 8080:8080 -p 8000:8000 -p 7000:7000 -d pcr-internal.puppet.net/pipelines/pipelines:523060
 EOF
 chmod +x start.sh
 
 echo -ne "\nCreating stop.sh stop script.\n"
 cat > stop.sh <<EOF
 cd $PIPELINES_DIR
-docker kill pfa
+docker kill pipelines
 docker kill mysql
 docker kill artifactory
 EOF
@@ -487,7 +492,7 @@ chmod +x stop.sh
 echo -ne "\nCreating remove.sh removal script.\n"
 cat > remove.sh <<EOF
 cd $PIPELINES_DIR
-docker kill pfa
+docker kill pipelines
 docker kill mysql
 docker kill artifactory
 sudo rm -rf /$PIPELINES_DIR/artifactory
